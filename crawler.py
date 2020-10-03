@@ -9,14 +9,18 @@ def make_page_list():
     
     # get the html file of URL
     response = requests.get(url)
-
-    # search directly in the html.text file using regex
-    for i in re.findall("problemset/problem/\d*/\w*", response.text):
-        lst_of_page.append(i)
-    
-    # limit the quantitiy of problems to 30 problems
-    return lst_of_page[:60:2]
+    soup = BeautifulSoup(response.text,"html.parser")
+    for i in soup.find_all("a", href = re.compile("problemset/problem/.*")):
+        # original method: lst_of_page.append(re.match("<a href=\"(/problemset/problem/.*)\"",i.text).group(1))
         
+        # the above forloop returns another html format file
+        # unpack the html file dictionary and extract all "href"
+        # access its attributes using item.attrs["attribute"]
+        lst_of_page.append(i.attrs["href"])
+        # lst_of_page.append(i)
+
+    return lst_of_page[:60:2]
+
 def print_title_to_md(lst=make_page_list()):
 
     # initiate the fetching process
@@ -25,7 +29,6 @@ def print_title_to_md(lst=make_page_list()):
         url = "https://codeforces.com/" + i
         response = requests.get(url)
         soup = BeautifulSoup(response.text, "html.parser")
-
 
         # data fetching
 
@@ -37,11 +40,9 @@ def print_title_to_md(lst=make_page_list()):
         md.write("\n")
         count += 1
 
-        # markdown syntax for paragraph division
-        md.write("---")
         md.write("\n")
         # get content.text through finding division "problem-statement" and "p"aragraph division and merge them with new line
-        contents = soup.find("div", class_ = "problem-statement").find("div", class_ = None)
+        contents = soup.find("div", class_ = "problem-statement").find("div", class_= None)
         md.write("".join(i.text + "\n" for i in contents.find_all("p")))
         md.write("\n")
         md.write("\n")
@@ -59,4 +60,5 @@ if __name__ == "__main__":
         md = open("cf30.md","w")
 
     print_title_to_md()
-    os.system("sed \"s/A\.//\" cf30.md > cf_crawled.md")
+    # remove all the "A." thing
+    os.system("sed \"s/A\.//\" cf30.md > cf30_substituted.md")
